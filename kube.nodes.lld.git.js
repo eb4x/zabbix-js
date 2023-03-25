@@ -65,10 +65,8 @@ function filter(name, data, filters) {
 }
 
 try {
-    var input = JSON.parse(value),
-        output = [];
-
-    if (typeof input !== 'object' || typeof input.items === 'undefined') {
+    var input = JSON.parse(value);
+    if (typeof input !== 'object' || typeof input.nodes === 'undefined') {
         Zabbix.log(4, '[ Kubernetes ] Received incorrect JSON: ' + value);
         throw 'Incorrect JSON. Check debug log for more information.';
     }
@@ -84,7 +82,8 @@ try {
     var filterLabels = parseFilters('!kubernetes.io/hostname: \\w+-[1-2],  node-role.kubernetes.io/master: .*, dope'),
         filterAnnotations = parseFilters('{$KUBE.NODE.FILTER.ANNOTATIONS}');
 
-    input.items.forEach(function (node) {
+    const output = [];
+    input.nodes.forEach(function (node) {
         if (filter(node.metadata.name, node.metadata.labels, filterLabels)
             && filter(node.metadata.name, node.metadata.annotations, filterAnnotations)) {
             Zabbix.log(4, '[ Kubernetes discovery ] Filtered node "' + node.metadata.name + '"');

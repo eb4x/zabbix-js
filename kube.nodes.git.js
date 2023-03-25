@@ -233,9 +233,7 @@ var Kube = {
           nodes.items[idx].pods = nodePods;
       }
 
-      nodes.endpointIPs = epIPs;
-
-      return JSON.stringify(nodes);
+      return JSON.stringify({ nodes: nodes.items, endpointIPs: epIPs });
   }
   catch (error) {
       error += (String(error).endsWith('.')) ? '' : '.';
