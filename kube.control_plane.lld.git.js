@@ -2,7 +2,7 @@ var Kube = {
     params: {},
 
     setParams: function (params) {
-        ['token', 'api_url', 'api_server_scheme', 'api_server_port',
+        ['api_token', 'api_url', 'api_server_scheme', 'api_server_port',
          'controller_scheme', 'controller_port',
          'scheduler_scheme', 'scheduler_port'].forEach(function (field) {
             if (typeof params !== 'object' || typeof params[field] === 'undefined'
@@ -20,7 +20,7 @@ var Kube = {
             url = Kube.params.api_url + query;
 
         request.addHeader('Content-Type: application/json');
-        request.addHeader('Authorization: Bearer ' + Kube.params.token);
+        request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
         Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 

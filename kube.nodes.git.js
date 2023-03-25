@@ -3,7 +3,7 @@ var Kube = {
       pods_limit: 1000,
 
       setParams: function (params) {
-          ['token', 'api_url', 'endpoint_name'].forEach(function (field) {
+          ['api_token', 'api_url', 'endpoint_name'].forEach(function (field) {
               if (typeof params !== 'object' || typeof params[field] === 'undefined'
                   || params[field] === '') {
                   throw 'Required param is not set: "' + field + '".';
@@ -19,7 +19,7 @@ var Kube = {
               url = Kube.params.api_url + query;
 
           request.addHeader('Content-Type: application/json');
-          request.addHeader('Authorization: Bearer ' + Kube.params.token);
+          request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
           Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 
