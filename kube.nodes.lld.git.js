@@ -27,22 +27,27 @@ function parseFilters(filter) {
 }
 
 function filter(name, data, filters) {
-    var isAllowed = true;
-
     if (typeof data !== 'object') {
-        return isAllowed;
+        return true;
     }
 
-    /* this is an 'optimized' forEach, where returning true breaks the for-loop,
-     * because we have no interest in processing further filters if the item is
-     * 'disqualified'.
-     * TODO: It would be better written as `every(`
+    /*
+     * We're using the .every( method for iterating over all filters to make sure
+     * data contains values we deem worthy of inclusion.
+     * If there's any filter that wants to exclude an element based on contents
+     * in data, we don't need to process additional filters, we can just stop
+     * (by returing false) to exclude the element.
+     *
+     * .every( also has the benefit that if filters is an empty array, it returns
+     * true, which allows us to use its return value.
      */
-    filters.some(function (filter) {
+    return filters.every(function (filter) {
 
         const filter_key = filter.key.startsWith('!') ? filter.key.substring(1) : filter.key;
         if (!(filter_key in data)) {
-            return false;
+            // if we have nothing to compare to, we're accepting the element
+            // which might not be a good idea?
+            return true;
         }
 
         const isExcludingFilter = filter.key.startsWith('!');
@@ -51,15 +56,12 @@ function filter(name, data, filters) {
             (!isExcludingFilter && !isMatchForFilter)) {
             Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter.key + ': ' + filter.expression + '"');
 
-            isAllowed = false;
-            return true;
+            return false;
         }
 
         // we've passed this filter, let's try the rest
-        return false;
+        return true;
     });
-
-    return isAllowed;
 }
 
 try {
