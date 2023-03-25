@@ -174,46 +174,48 @@ var Kube = {
           var internalIP = internalIPs.length && internalIPs[0].address;
 
           pods.forEach(function (pod) {
+              if (pod.status.hostIP !== internalIP) {
+                  return;
+              }
+
               var containers = {
                   limits: { cpu: 0, memory: 0 },
                   requests: { cpu: 0, memory: 0 },
                   restartCount: 0
               }
 
-              if (pod.status.hostIP === internalIP) {
-                  pod.spec.containers.forEach(function (container) {
-                      var limits = container.resources.limits,
-                          requests = container.resources.requests;
+              pod.spec.containers.forEach(function (container) {
+                  var limits = container.resources.limits,
+                      requests = container.resources.requests;
 
-                      nodePodsCount++;
+                  nodePodsCount++;
 
-                      if (typeof limits !== 'undefined') {
-                          containers.limits.cpu += Fmt.cpuFormat(limits.cpu);
-                          containers.limits.memory += Fmt.memoryFormat(limits.memory);
-                      }
+                  if (typeof limits !== 'undefined') {
+                      containers.limits.cpu += Fmt.cpuFormat(limits.cpu);
+                      containers.limits.memory += Fmt.memoryFormat(limits.memory);
+                  }
 
-                      if (typeof requests !== 'undefined') {
-                          containers.requests.cpu += Fmt.cpuFormat(requests.cpu);
-                          containers.requests.memory += Fmt.memoryFormat(requests.memory);
-                      }
-                  });
+                  if (typeof requests !== 'undefined') {
+                      containers.requests.cpu += Fmt.cpuFormat(requests.cpu);
+                      containers.requests.memory += Fmt.memoryFormat(requests.memory);
+                  }
+              });
 
-                  pod.status.containerStatuses.forEach(function (container) {
-                      containers.restartCount += container.restartCount;
-                  });
+              pod.status.containerStatuses.forEach(function (container) {
+                  containers.restartCount += container.restartCount;
+              });
 
-                  nodePods.push({
-                      name: pod.metadata.name,
-                      namespace: pod.metadata.namespace,
-                      labels: pod.metadata.labels,
-                      annotations: pod.metadata.annotations,
-                      phase: pod.status.phase,
-                      conditions: pod.status.conditions,
-                      startTime: pod.status.startTime,
-                      containers: containers
-                  })
-              }
-          })
+              nodePods.push({
+                  name: pod.metadata.name,
+                  namespace: pod.metadata.namespace,
+                  labels: pod.metadata.labels,
+                  annotations: pod.metadata.annotations,
+                  phase: pod.status.phase,
+                  conditions: pod.status.conditions,
+                  startTime: pod.status.startTime,
+                  containers: containers
+              });
+          });
           delete nodes.items[idx].metadata.managedFields;
           delete nodes.items[idx].status.images;
 
