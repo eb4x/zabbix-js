@@ -2,7 +2,7 @@ var Kube = {
     params: {},
 
     setParams: function (params) {
-        ['api_endpoint', 'token', 'kubelet_scheme', 'kubelet_port'].forEach(function (field) {
+        ['token', 'api_url', 'kubelet_scheme', 'kubelet_port'].forEach(function (field) {
             if (typeof params !== 'object' || typeof params[field] === 'undefined'
                 || params[field] === '') {
                 throw 'Required param is not set: "' + field + '".';
@@ -10,15 +10,12 @@ var Kube = {
         });
 
         Kube.params = params;
-        if (typeof Kube.params.api_endpoint === 'string' && !Kube.params.api_endpoint.endsWith('/')) {
-            Kube.params.api_endpoint += '/';
-        }
     },
 
     request: function (query) {
         var response,
             request = new HttpRequest(),
-            url = Kube.params.api_endpoint + query;
+            url = Kube.params.api_url + query;
 
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.token);
@@ -49,7 +46,7 @@ var Kube = {
     },
 
     getNodes: function () {
-        var result = Kube.request('v1/nodes');
+        var result = Kube.request('/api/v1/nodes');
 
         if (typeof result.response !== 'object'
             || typeof result.response.items === 'undefined'
@@ -66,13 +63,14 @@ try {
 
     var nodes = Kube.getNodes(),
         kubeNodes = [];
-        api_url = 'https://api.okd.slips.pl:6443',
-        hostname = api_url.match(/\/\/(.+):/);
 
-    if (typeof hostname[1] === 'undefined') {
-          Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + api_url + '. Expected format: <scheme>://<host>:<port>');
-          throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
-        };
+    const match = Kube.params.api_url.match(/\/\/(.+):/);
+    if (!match) {
+        Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
+        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
+    }
+    const api_hostname = match[1];
+
     for (idx in nodes.items) {
         var internalIPs = nodes.items[idx].status.addresses.filter(function (addr) {
             return addr.type === 'InternalIP';
@@ -85,7 +83,7 @@ try {
             '{#IP}': internalIP,
             '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']')  + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',
-            '{#CLUSTER_HOSTNAME}': hostname[1]
+            '{#CLUSTER_HOSTNAME}': api_hostname
         });
     }
 

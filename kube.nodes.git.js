@@ -3,7 +3,7 @@ var Kube = {
       pods_limit: 1000,
 
       setParams: function (params) {
-          ['api_endpoint', 'token', 'endpoint_name'].forEach(function (field) {
+          ['token', 'api_url', 'endpoint_name'].forEach(function (field) {
               if (typeof params !== 'object' || typeof params[field] === 'undefined'
                   || params[field] === '') {
                   throw 'Required param is not set: "' + field + '".';
@@ -11,15 +11,12 @@ var Kube = {
           });
 
           Kube.params = params;
-          if (typeof Kube.params.api_endpoint === 'string' && !Kube.params.api_endpoint.endsWith('/')) {
-              Kube.params.api_endpoint += '/';
-          }
       },
 
       request: function (query) {
           var response,
               request = new HttpRequest(),
-              url = Kube.params.api_endpoint + query;
+              url = Kube.params.api_url + query;
 
           request.addHeader('Content-Type: application/json');
           request.addHeader('Authorization: Bearer ' + Kube.params.token);
@@ -50,7 +47,7 @@ var Kube = {
       },
 
       getNodes: function () {
-          var result = Kube.request('v1/nodes');
+          var result = Kube.request('/api/v1/nodes');
 
           if (typeof result.response !== 'object'
               || typeof result.response.items === 'undefined'
@@ -66,7 +63,7 @@ var Kube = {
               continue_token;
 
           while (continue_token !== '') {
-              var data = Kube.request('v1/pods?limit=' + Kube.pods_limit
+              var data = Kube.request('/api/v1/pods?limit=' + Kube.pods_limit
                   + ((typeof continue_token !== 'undefined') ? '&continue=' + continue_token : ''));
 
               if (typeof data.response !== 'object'
@@ -83,7 +80,7 @@ var Kube = {
       },
 
       getEndpointIPs: function () {
-          var result = Kube.request('v1/endpoints'),
+          var result = Kube.request('/api/v1/endpoints'),
               epIPs = {};
 
           if (typeof result.response !== 'object'

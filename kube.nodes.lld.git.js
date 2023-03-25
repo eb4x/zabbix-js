@@ -35,18 +35,19 @@ function filter(name, data, filters) {
 try {
     var input = JSON.parse(value),
         output = [];
-        api_url = 'https://api.okd.slips.pl:6443',
-        hostname = api_url.match(/\/\/(.+):/);
-
-    if (typeof hostname[1] === 'undefined') {
-        Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + api_url + '. Expected format: <scheme>://<host>:<port>');
-        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
-    };
 
     if (typeof input !== 'object' || typeof input.items === 'undefined') {
         Zabbix.log(4, '[ Kubernetes ] Received incorrect JSON: ' + value);
         throw 'Incorrect JSON. Check debug log for more information.';
     }
+
+    const api_url = 'https://api.okd.slips.pl:6443';
+    var match = api_url.match(/(?:(https?):\/\/)([^:/]+)(?::(\d+))/);
+    if (!match) {
+        Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + api_url + '. Expected format: <scheme>://<host>:<port>');
+        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
+    };
+    const api_hostname = match[2];
 
     var filterLabels = parseFilters('!kubernetes.io/hostname: \\w+-[1-2],  node-role.kubernetes.io/master: .*, dope'),
         filterAnnotations = parseFilters('{$KUBE.NODE.FILTER.ANNOTATIONS}');
@@ -69,7 +70,7 @@ try {
                     '{#ROLES}': node.status.roles,
                     '{#ARCH}': node.metadata.labels['kubernetes.io/arch'] || '',
                     '{#OS}': node.metadata.labels['kubernetes.io/os'] || '',
-                    '{#CLUSTER_HOSTNAME}': hostname[1]
+                    '{#CLUSTER_HOSTNAME}': api_hostname
                 });
             }
             else {

@@ -3,23 +3,20 @@ var Kube = {
     metrics_endpoint: undefined,
 
     setParams: function (params) {
-        ['api_endpoint', 'token', 'state_endpoint_name'].forEach(function (field) {
+        ['token', 'api_url', 'state_endpoint_name'].forEach(function (field) {
             if (typeof params !== 'object' || typeof params[field] === 'undefined'
                 || params[field] === '') {
                 throw 'Required param is not set: "' + field + '".';
             }
         });
 
-          Kube.params = params;
-          if (typeof Kube.params.api_endpoint === 'string' && !Kube.params.api_endpoint.endsWith('/')) {
-              Kube.params.api_endpoint += '/';
-          }
+        Kube.params = params;
     },
 
     apiRequest: function (query) {
         var response,
             request = new HttpRequest(),
-            url = Kube.params.api_endpoint + query;
+            url = Kube.params.api_url + query;
 
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.token);
@@ -50,7 +47,7 @@ var Kube = {
     },
 
     getMetricsEndpoint: function () {
-        var result = Kube.apiRequest('v1/endpoints'),
+        var result = Kube.apiRequest('/api/v1/endpoints'),
             endpoint = undefined;
 
         if (typeof result.response !== 'object'
