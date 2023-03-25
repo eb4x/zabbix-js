@@ -10,6 +10,20 @@ var Kube = {
         });
 
         Kube.params = params;
+
+        /* This regex can be broken down into the following components
+         *
+         * (?:(?<scheme>https?):\/\/)
+         * (?<host>[^:/]+)
+         * (?::(?<port>\d+))
+         */
+        const match = Kube.params.api_url.match(/(?:(https?):\/\/)([^:/]+)(?::(\d+))/);
+        if (!match) {
+            Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
+            throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
+        }
+
+        Kube.params.api_hostname = match[2];
     },
 
     request: function (query) {
@@ -61,13 +75,6 @@ try {
 
     const nodes = Kube.getNodes();
 
-    const match = Kube.params.api_url.match(/\/\/(.+):/);
-    if (!match) {
-        Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
-        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
-    }
-    const api_hostname = match[1];
-
     const kubeNodes = [];
     nodes.forEach(function (node) {
         var internalIPs = node.status.addresses.filter(function (addr) {
@@ -81,7 +88,7 @@ try {
             '{#IP}': internalIP,
             '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']')  + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',
-            '{#CLUSTER_HOSTNAME}': api_hostname
+            '{#CLUSTER_HOSTNAME}': Kube.params.api_hostname
         });
     });
 

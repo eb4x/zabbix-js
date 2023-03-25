@@ -2,7 +2,7 @@ var Kube = {
     params: {},
 
     setParams: function (params) {
-        ['api_token', 'api_url', 'api_server_scheme', 'api_server_port',
+        ['api_token', 'api_url',
          'controller_scheme', 'controller_port',
          'scheduler_scheme', 'scheduler_port'].forEach(function (field) {
             if (typeof params !== 'object' || typeof params[field] === 'undefined'
@@ -12,6 +12,22 @@ var Kube = {
         });
 
         Kube.params = params;
+
+        /* This regex can be broken down into the following components
+         *
+         * (?:(?<scheme>https?):\/\/)
+         * (?<host>[^:/]+)
+         * (?::(?<port>\d+))
+         */
+        const match = Kube.params.api_url.match(/(?:(https?):\/\/)([^:/]+)(?::(\d+))/);
+        if (!match) {
+            Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
+            throw 'Cannot get host from Kubernetes API url. Check debug log for more information.';
+        }
+
+        Kube.params.api_scheme = match[1];
+        Kube.params.api_hostname = match[2];
+        Kube.params.api_port = match[3];
     },
 
     request: function (query) {
@@ -63,13 +79,6 @@ try {
 
     const nodes = Kube.getNodes();
 
-    const match = Kube.params.api_url.match(/\/\/(.+):/);
-    if (!match) {
-        Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
-        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
-    }
-    const api_hostname = match[1];
-
     const controlPlaneNodes = [];
     nodes.forEach(function (node) {
         if ('node-role.kubernetes.io/control-plane' in node.metadata.labels ||
@@ -82,13 +91,13 @@ try {
             controlPlaneNodes.push({
                 '{#NAME}': node.metadata.name,
                 '{#IP}': internalIP,
-                '{#KUBE.API.SERVER.URL}': Kube.params.api_server_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_server_port + '/metrics',
+                '{#KUBE.API.SERVER.URL}': Kube.params.api_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_port + '/metrics',
                 '{#KUBE.CONTROLLER.SERVER.URL}': Kube.params.controller_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.controller_port + '/metrics',
                 '{#KUBE.SCHEDULER.SERVER.URL}': Kube.params.scheduler_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.scheduler_port + '/metrics',
                 '{#COMPONENT.API}' : 'API',
                 '{#COMPONENT.CONTROLLER}' : 'Controller manager',
                 '{#COMPONENT.SCHEDULER}' : 'Scheduler',
-                '{#CLUSTER_HOSTNAME}': api_hostname
+                '{#CLUSTER_HOSTNAME}': Kube.params.api_hostname
             });
         }
     });
