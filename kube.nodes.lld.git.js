@@ -1,14 +1,29 @@
 function parseFilters(filter) {
-    var pairs = {};
+    var filters = [];
+
+    /* This regex can be broken down into to this;
+     *
+     * [\w\.-]+ will create a character class `[]` to capture `a-zA-Z0-9_-.`
+     *
+     * We then create a capture group `()` looking for two of these separated
+     * by a `/` and ending in a `:` e.g. `word0/word1:`
+     *
+     * lastly, we're catching whatever comes after whitespace
+     * \s*.+
+     */
+    const isValidFilterExpression = /([\w\.-]+\/[\w\.-]+):\s*.+/;
 
     filter.split(/\s*,\s*/).forEach(function (kv) {
-        if (/([\w\.-]+\/[\w\.-]+):\s*.+/.test(kv)) {
-            var pair = kv.split(/\s*:\s*/);
-            pairs[pair[0]] = pair[1];
+        if (!isValidFilterExpression.test(kv)) {
+            Zabbix.log(3, 'Cannot parse filter from: "' + kv + '"');
+            return;
         }
+
+        var pair = kv.split(/\s*:\s*/);
+        filters.push({ key: pair[0], expression: pair[1] });
     });
 
-    return pairs;
+    return filters;
 }
 
 function filter(name, data, filters) {
@@ -18,12 +33,12 @@ function filter(name, data, filters) {
         return filtered;
     }
 
-    Object.keys(filters).some(function (filter) {
-        var exclude = filter.match(/^!(.+)/);
-        if (filter in data || (exclude && exclude[1] in data)) {
-            if ((exclude && new RegExp(filters[filter]).test(data[exclude[1]]))
-                || (!exclude && !(new RegExp(filters[filter]).test(data[filter])))) {
-                Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter + ': ' + filters[filter] + '"');
+    filters.some(function (filter) {
+        var exclude = filter.key.match(/^!(.+)/);
+        if (filter.key in data || (exclude && exclude[1] in data)) {
+            if ((exclude && new RegExp(filter.expression).test(data[exclude[1]]))
+                || (!exclude && !(new RegExp(filter.expression).test(data[filter.key])))) {
+                Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter.label + ': ' + filter.expression + '"');
 
                 filtered = false;
                 return true;
