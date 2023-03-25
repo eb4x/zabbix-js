@@ -43,18 +43,10 @@ var Kube = {
         };
     },
 
-    getMetricsEndpointUrl: function () {
-        var result = Kube.request('/api/v1/endpoints');
-
-        if (typeof result.response !== 'object'
-            || typeof result.response.items === 'undefined'
-            || result.status != 200) {
-            throw 'Cannot get endpoints from Kubernetes API. Check debug log for more information.';
-        };
-
-        var endpointUrl;
-        result.response.items.forEach(function (ep) {
-            if (ep.metadata.name !== Kube.params.state_endpoint_name) {
+    findEndpoint: function (name, list) {
+        var endpoint;
+        list.forEach(function (ep) {
+            if (ep.metadata.name !== name) {
                 return;
             }
             if (!Array.isArray(ep.subsets)) {
@@ -64,28 +56,46 @@ var Kube = {
                 return;
             }
 
-            var scheme, addr, port;
-            ep.subsets.forEach(function (subset) {
-                subset.ports.forEach(function (item) {
-                    if (item.name !== 'http' &&
-                        item.name !== 'https' &&
-                        item.name !== 'https-main') {
-                        return;
-                    }
-
-                    scheme = item.name.match('https?');
-                    port = item.port;
-                });
-
-                // incase subset has multiple addresses, just pick one at random
-                const random = Math.floor(Math.random() * subset.addresses.length);
-                addr = subset.addresses[random].ip;
-
-                endpointUrl = scheme + "://" + addr + ":" + port;
-            });
+            endpoint = ep;
         });
 
-        return endpointUrl;
+        return endpoint;
+    },
+
+    getMetricsEndpointUrl: function () {
+        var result = Kube.request('/api/v1/endpoints');
+
+        if (typeof result.response !== 'object'
+            || typeof result.response.items === 'undefined'
+            || result.status != 200) {
+            throw 'Cannot get endpoints from Kubernetes API. Check debug log for more information.';
+        };
+
+        const ep = Kube.findEndpoint(Kube.params.state_endpoint_name, result.response.items);
+
+        var scheme, addr, port;
+        ep.subsets.forEach(function (subset) {
+            subset.ports.forEach(function (item) {
+                if (item.name !== 'http' &&
+                    item.name !== 'https' &&
+                    item.name !== 'https-main') {
+                    return;
+                }
+
+                scheme = item.name.match('https?');
+                port = item.port;
+            });
+
+            // incase subset has multiple addresses, just pick one at random
+            const random = Math.floor(Math.random() * subset.addresses.length);
+            addr = subset.addresses[random].ip;
+        });
+
+        if (!scheme || !addr || !port) {
+            throw "Failed to get scheme: " + scheme + ", addr: " + addr + " or port: " + port;
+        }
+
+        return scheme + "://" + addr + ":" + port;
     },
 
     getStateMetrics: function (metricsEndpointUrl) {
