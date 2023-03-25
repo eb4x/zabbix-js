@@ -115,15 +115,14 @@ var Kube = {
 try {
     Kube.setParams(JSON.parse(value));
 
-    var result = Kube.request('/api/v1/endpoints');
+    var metricsEndpoint;
+    if (Kube.params.state_endpoint_namespace) {
+        metricsEndpoint = Kube.request('/api/v1/namespaces/' + Kube.params.state_endpoint_namespace + '/endpoints/' + Kube.params.state_endpoint_name).response;
+    } else {
+        const endpointList = Kube.request('/api/v1/endpoints').response.items;
+        metricsEndpoint = Kube.findEndpoint(Kube.params.state_endpoint_name, endpointList);
+    }
 
-    if (typeof result.response !== 'object'
-        || typeof result.response.items === 'undefined'
-        || result.status != 200) {
-        throw 'Cannot get endpoints from Kubernetes API. Check debug log for more information.';
-    };
-
-    const metricsEndpoint = Kube.findEndpoint(Kube.params.state_endpoint_name, result.response.items);
     const metricsEndpointUrl = Kube.getEndpointUrl(metricsEndpoint);
     const stateMetrics = Kube.getStateMetrics(metricsEndpointUrl);
 
