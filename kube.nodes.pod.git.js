@@ -27,26 +27,39 @@ function parseFilters(filter) {
 }
 
 function filter(name, data, filters) {
-    var filtered = true;
+    var isAllowed = true;
 
     if (typeof data !== 'object') {
-        return filtered;
+        return isAllowed;
     }
 
+    /* this is an 'optimized' forEach, where returning true breaks the for-loop,
+     * because we have no interest in processing further filters if the item is
+     * 'disqualified'.
+     * TODO: It would be better written as `every(`
+     */
     filters.some(function (filter) {
-        var exclude = filter.key.match(/^!(.+)/);
-        if (filter.key in data || (exclude && exclude[1] in data)) {
-            if ((exclude && new RegExp(filter.expression).test(data[exclude[1]]))
-                || (!exclude && !(new RegExp(filter.expression).test(data[filter.key])))) {
-                Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter.key + ': ' + filter.expression + '"');
 
-                filtered = false;
-                return true;
-            }
+        const filter_key = filter.key.startsWith('!') ? filter.key.substring(1) : filter.key;
+        if (!(filter_key in data)) {
+            return false;
         }
+
+        const isExcludingFilter = filter.key.startsWith('!');
+        const isMatchForFilter = new RegExp(filter.expression).test(data[filter_key]);
+        if ((isExcludingFilter && isMatchForFilter) ||
+            (!isExcludingFilter && !isMatchForFilter)) {
+            Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter.key + ': ' + filter.expression + '"');
+
+            isAllowed = false;
+            return true;
+        }
+
+        // we've passed this filter, let's try the rest
+        return false;
     });
 
-    return filtered;
+    return isAllowed;
 }
 
 try {
