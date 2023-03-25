@@ -14,20 +14,22 @@ function parseFilters(filter) {
 function filter(name, data, filters) {
     var filtered = true;
 
-    if (typeof data === 'object') {
-        Object.keys(filters).some(function (filter) {
-            var exclude = filter.match(/^!(.+)/);
-            if (filter in data || (exclude && exclude[1] in data)) {
-                if ((exclude && new RegExp(filters[filter]).test(data[exclude[1]]))
-                    || (!exclude && !(new RegExp(filters[filter]).test(data[filter])))) {
-                    Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter + ': ' + filters[filter] + '"');
-
-                    filtered = false;
-                    return true;
-                }
-            };
-        });
+    if (typeof data !== 'object') {
+        return filtered;
     }
+
+    Object.keys(filters).some(function (filter) {
+        var exclude = filter.match(/^!(.+)/);
+        if (filter in data || (exclude && exclude[1] in data)) {
+            if ((exclude && new RegExp(filters[filter]).test(data[exclude[1]]))
+                || (!exclude && !(new RegExp(filters[filter]).test(data[filter])))) {
+                Zabbix.log(4, '[ Kubernetes discovery ] Discarded "' + name + '" by filter "' + filter + ': ' + filters[filter] + '"');
+
+                filtered = false;
+                return true;
+            }
+        }
+    });
 
     return filtered;
 }
