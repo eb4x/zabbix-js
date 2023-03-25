@@ -57,31 +57,39 @@ var Kube = {
         };
 
         result.response.items.forEach(function (ep) {
-            if (ep.metadata.name === Kube.params.state_endpoint_name && Array.isArray(ep.subsets)) {
-                if (typeof ep.subsets[0].addresses !== 'undefined') {
-                    var scheme, addr, port;
-                    ep.subsets.forEach(function(subset){
-                        var lp = subset.ports.filter(function (port) {
-                            if (port.name !== 'http' &&
-                                port.name !== 'https' &&
-                                port.name !== 'https-main') {
-                                return false;
-                            }
-                            scheme = port.name.match(/https?/);
-                            return true;
-                        })
-                        if (lp.length) {
-                            port = lp[0].port
-                            addr = subset.addresses[0].ip
-                        }
-                    })
-                    endpoint = {
-                        scheme: scheme || 'http',
-                        address: addr || ep.subsets[0].addresses[0].ip,
-                        port: port || 8080
-                    }
-                }
+            if (ep.metadata.name !== Kube.params.state_endpoint_name) {
+                return;
             }
+            if (!Array.isArray(ep.subsets)) {
+                return;
+            }
+            if (!ep.subsets[0].addresses) {
+                return;
+            }
+
+            var scheme, addr, port;
+            ep.subsets.forEach(function (subset) {
+                var lp = subset.ports.filter(function (port) {
+                    if (port.name !== 'http' &&
+                        port.name !== 'https' &&
+                        port.name !== 'https-main') {
+                        return false;
+                    }
+                    scheme = port.name.match(/https?/);
+                    return true;
+                });
+
+                if (lp.length) {
+                    port = lp[0].port;
+                    addr = subset.addresses[0].ip;
+                }
+            });
+
+            endpoint = {
+                scheme: scheme || 'http',
+                address: addr || ep.subsets[0].addresses[0].ip,
+                port: port || 8080
+            };
         });
 
         Kube.metrics_endpoint = endpoint;
