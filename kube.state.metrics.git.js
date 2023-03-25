@@ -1,6 +1,5 @@
 var Kube = {
     params: {},
-    metrics_endpoint: undefined,
 
     setParams: function (params) {
         ['api_token', 'api_url', 'state_endpoint_name'].forEach(function (field) {
@@ -44,9 +43,8 @@ var Kube = {
         };
     },
 
-    getMetricsEndpoint: function () {
-        var result = Kube.request('/api/v1/endpoints'),
-            endpoint = undefined;
+    getMetricsEndpointUrl: function () {
+        var result = Kube.request('/api/v1/endpoints');
 
         if (typeof result.response !== 'object'
             || typeof result.response.items === 'undefined'
@@ -54,6 +52,7 @@ var Kube = {
             throw 'Cannot get endpoints from Kubernetes API. Check debug log for more information.';
         };
 
+        var endpointUrl;
         result.response.items.forEach(function (ep) {
             if (ep.metadata.name !== Kube.params.state_endpoint_name) {
                 return;
@@ -67,43 +66,34 @@ var Kube = {
 
             var scheme, addr, port;
             ep.subsets.forEach(function (subset) {
-                var lp = subset.ports.filter(function (port) {
-                    if (port.name !== 'http' &&
-                        port.name !== 'https' &&
-                        port.name !== 'https-main') {
-                        return false;
+                subset.ports.forEach(function (item) {
+                    if (item.name !== 'http' &&
+                        item.name !== 'https' &&
+                        item.name !== 'https-main') {
+                        return;
                     }
-                    scheme = port.name.match(/https?/);
-                    return true;
+
+                    scheme = item.name.match('https?');
+                    port = item.port;
                 });
 
-                if (lp.length) {
-                    port = lp[0].port;
-                    addr = subset.addresses[0].ip;
-                }
-            });
+                // incase subset has multiple addresses, just pick one at random
+                const random = Math.floor(Math.random() * subset.addresses.length);
+                addr = subset.addresses[random].ip;
 
-            endpoint = {
-                scheme: scheme || 'http',
-                address: addr || ep.subsets[0].addresses[0].ip,
-                port: port || 8080
-            };
+                endpointUrl = scheme + "://" + addr + ":" + port;
+            });
         });
 
-        Kube.metrics_endpoint = endpoint;
-        return endpoint;
+        return endpointUrl;
     },
 
-    getStateMetrics: function () {
-        if (typeof Kube.metrics_endpoint === 'undefined') {
-            throw 'Cannot get kube-state-metrics endpoints from Kubernetes API. Check debug log for more information.';
-        }
-
+    getStateMetrics: function (metricsEndpointUrl) {
         const request = new HttpRequest();
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
-        const url = Kube.metrics_endpoint.scheme + '://' + Kube.metrics_endpoint.address + ':' + Kube.metrics_endpoint.port + '/metrics';
+        const url = metricsEndpointUrl + '/metrics';
         Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 
         var response = request.get(url);
@@ -125,8 +115,8 @@ var Kube = {
 try {
     Kube.setParams(JSON.parse(value));
 
-    var metricsEndpoint = Kube.getMetricsEndpoint(),
-        stateMetrics = Kube.getStateMetrics();
+    var metricsEndpointUrl = Kube.getMetricsEndpointUrl();
+    var stateMetrics = Kube.getStateMetrics(metricsEndpointUrl);
 
     return stateMetrics;
 }
