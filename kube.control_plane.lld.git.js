@@ -76,7 +76,7 @@ try {
 
     for (idx in nodes.items) {
         for (label in nodes.items[idx].metadata.labels) {
-            if (label === 'node-role.kubernetes.io/control-plane') {                          
+            if (label === 'node-role.kubernetes.io/control-plane' || label === 'node-role.kubernetes.io/master') {
                 var internalIPs = nodes.items[idx].status.addresses.filter(function (addr) {
                     return addr.type === 'InternalIP';
                 });

@@ -62,10 +62,16 @@ var Kube = {
         result.response.items.forEach(function (ep) {
             if (ep.metadata.name === Kube.params.state_endpoint_name && Array.isArray(ep.subsets)) {
                 if (typeof ep.subsets[0].addresses !== 'undefined') {
-                    var port, addr
+                    var scheme, addr, port;
                     ep.subsets.forEach(function(subset){
                         var lp = subset.ports.filter(function (port) {
-                            return port.name === 'http';
+                            if (port.name !== 'http' &&
+                                port.name !== 'https' &&
+                                port.name !== 'https-main') {
+                                return false;
+                            }
+                            scheme = port.name.match(/https?/);
+                            return true;
                         })
                         if (lp.length) {
                             port = lp[0].port
@@ -73,6 +79,7 @@ var Kube = {
                         }
                     })
                     endpoint = {
+                        scheme: scheme || 'http',
                         address: addr || ep.subsets[0].addresses[0].ip,
                         port: port || 8080
                     }
@@ -91,7 +98,7 @@ var Kube = {
 
         var response,
             request = new HttpRequest(),
-            url = 'http://' + Kube.metrics_endpoint.address + ':' + Kube.metrics_endpoint.port + '/metrics';
+            url = Kube.metrics_endpoint.scheme + '://' + Kube.metrics_endpoint.address + ':' + Kube.metrics_endpoint.port + '/metrics';
 
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.token);
