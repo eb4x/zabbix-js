@@ -75,6 +75,8 @@ try {
 
     const nodes = Kube.getNodes();
 
+    const isIPv4 = /(\d+\.){3}\d+/;
+
     const kubeNodes = [];
     nodes.forEach(function (node) {
         var internalIPs = node.status.addresses.filter(function (addr) {
@@ -86,7 +88,7 @@ try {
         kubeNodes.push({
             '{#NAME}': node.metadata.name,
             '{#IP}': internalIP,
-            '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']')  + ':' + Kube.params.kubelet_port,
+            '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',
             '{#CLUSTER_HOSTNAME}': Kube.params.api_hostname
         });

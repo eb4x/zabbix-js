@@ -85,6 +85,8 @@ try {
                 'node-role.kubernetes.io/master' in node.metadata.labels);
     });
 
+    const isIPv4 = /(\d+\.){3}\d+/;
+
     const controlPlaneNodes = [];
     nodes.forEach(function (node) {
         var internalIPs = node.status.addresses.filter(function (addr) {
@@ -95,9 +97,9 @@ try {
         controlPlaneNodes.push({
             '{#NAME}': node.metadata.name,
             '{#IP}': internalIP,
-            '{#KUBE.API.SERVER.URL}': Kube.params.api_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_port + '/metrics',
-            '{#KUBE.CONTROLLER.SERVER.URL}': Kube.params.controller_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.controller_port + '/metrics',
-            '{#KUBE.SCHEDULER.SERVER.URL}': Kube.params.scheduler_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.scheduler_port + '/metrics',
+            '{#KUBE.API.SERVER.URL}':        Kube.params.api_scheme        + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_port        + '/metrics',
+            '{#KUBE.CONTROLLER.SERVER.URL}': Kube.params.controller_scheme + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.controller_port + '/metrics',
+            '{#KUBE.SCHEDULER.SERVER.URL}':  Kube.params.scheduler_scheme  + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.scheduler_port  + '/metrics',
             '{#COMPONENT.API}' : 'API',
             '{#COMPONENT.CONTROLLER}' : 'Controller manager',
             '{#COMPONENT.SCHEDULER}' : 'Scheduler',
