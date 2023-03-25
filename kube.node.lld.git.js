@@ -52,15 +52,14 @@ var Kube = {
             throw 'Cannot get nodes from Kubernetes API. Check debug log for more information.';
         }
 
-        return result.response;
+        return result.response.items;
     },
 };
 
 try {
     Kube.setParams(JSON.parse(value));
 
-    var nodes = Kube.getNodes(),
-        kubeNodes = [];
+    const nodes = Kube.getNodes();
 
     const match = Kube.params.api_url.match(/\/\/(.+):/);
     if (!match) {
@@ -69,15 +68,16 @@ try {
     }
     const api_hostname = match[1];
 
-    for (idx in nodes.items) {
-        var internalIPs = nodes.items[idx].status.addresses.filter(function (addr) {
+    const kubeNodes = [];
+    for (idx in nodes) {
+        var internalIPs = nodes[idx].status.addresses.filter(function (addr) {
             return addr.type === 'InternalIP';
         });
 
         var internalIP = internalIPs.length && internalIPs[0].address;
 
         kubeNodes.push({
-            '{#NAME}': nodes.items[idx].metadata.name,
+            '{#NAME}': nodes[idx].metadata.name,
             '{#IP}': internalIP,
             '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']')  + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',

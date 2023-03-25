@@ -53,7 +53,7 @@ var Kube = {
               throw 'Cannot get nodes from Kubernetes API. Check debug log for more information.';
           }
 
-          return result.response;
+          return result.response.items;
       },
 
       getPods: function () {
@@ -157,13 +157,13 @@ var Kube = {
           pods = Kube.getPods(),
           epIPs = Kube.getEndpointIPs();
 
-      for (idx in nodes.items) {
+      for (idx in nodes) {
           var internalIP,
               nodePodsCount = 0,
               nodePods = [],
               roles = [];
 
-          Object.keys(nodes.items[idx].metadata.labels).forEach(function (label) {
+          Object.keys(nodes[idx].metadata.labels).forEach(function (label) {
               var splitLabel = label.match(/^node-role.kubernetes.io\/([\w\.-]+)/);
 
               if (splitLabel) {
@@ -171,7 +171,7 @@ var Kube = {
               }
           });
 
-          var internalIPs = nodes.items[idx].status.addresses.filter(function (addr) {
+          var internalIPs = nodes[idx].status.addresses.filter(function (addr) {
               return addr.type === 'InternalIP';
           });
 
@@ -220,20 +220,21 @@ var Kube = {
                   containers: containers
               });
           });
-          delete nodes.items[idx].metadata.managedFields;
-          delete nodes.items[idx].status.images;
 
-          nodes.items[idx].status.capacity.cpu = Fmt.cpuFormat(nodes.items[idx].status.capacity.cpu);
-          nodes.items[idx].status.capacity.memory = Fmt.memoryFormat(nodes.items[idx].status.capacity.memory);
-          nodes.items[idx].status.allocatable.cpu = Fmt.cpuFormat(nodes.items[idx].status.allocatable.cpu);
-          nodes.items[idx].status.allocatable.memory = Fmt.memoryFormat(nodes.items[idx].status.allocatable.memory);
+          delete nodes[idx].metadata.managedFields;
+          delete nodes[idx].status.images;
 
-          nodes.items[idx].status.podsCount = nodePodsCount;
-          nodes.items[idx].status.roles = roles.join(', ');
-          nodes.items[idx].pods = nodePods;
+          nodes[idx].status.capacity.cpu = Fmt.cpuFormat(nodes[idx].status.capacity.cpu);
+          nodes[idx].status.capacity.memory = Fmt.memoryFormat(nodes[idx].status.capacity.memory);
+          nodes[idx].status.allocatable.cpu = Fmt.cpuFormat(nodes[idx].status.allocatable.cpu);
+          nodes[idx].status.allocatable.memory = Fmt.memoryFormat(nodes[idx].status.allocatable.memory);
+
+          nodes[idx].status.podsCount = nodePodsCount;
+          nodes[idx].status.roles = roles.join(', ');
+          nodes[idx].pods = nodePods;
       }
 
-      return JSON.stringify({ nodes: nodes.items, endpointIPs: epIPs });
+      return JSON.stringify({ nodes: nodes, endpointIPs: epIPs });
   }
   catch (error) {
       error += (String(error).endsWith('.')) ? '' : '.';
