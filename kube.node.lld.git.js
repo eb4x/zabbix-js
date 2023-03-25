@@ -69,21 +69,21 @@ try {
     const api_hostname = match[1];
 
     const kubeNodes = [];
-    for (idx in nodes) {
-        var internalIPs = nodes[idx].status.addresses.filter(function (addr) {
+    nodes.forEach(function (node) {
+        var internalIPs = node.status.addresses.filter(function (addr) {
             return addr.type === 'InternalIP';
         });
 
         var internalIP = internalIPs.length && internalIPs[0].address;
 
         kubeNodes.push({
-            '{#NAME}': nodes[idx].metadata.name,
+            '{#NAME}': node.metadata.name,
             '{#IP}': internalIP,
             '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']')  + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',
             '{#CLUSTER_HOSTNAME}': api_hostname
         });
-    }
+    });
 
     return JSON.stringify(kubeNodes);
 }

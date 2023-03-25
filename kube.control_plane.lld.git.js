@@ -71,16 +71,16 @@ try {
     const api_hostname = match[1];
 
     const controlPlaneNodes = [];
-    for (idx in nodes) {
-        if ('node-role.kubernetes.io/control-plane' in nodes[idx].metadata.labels ||
-            'node-role.kubernetes.io/master' in nodes[idx].metadata.labels) {
-            var internalIPs = nodes[idx].status.addresses.filter(function (addr) {
+    nodes.forEach(function (node) {
+        if ('node-role.kubernetes.io/control-plane' in node.metadata.labels ||
+            'node-role.kubernetes.io/master' in node.metadata.labels) {
+            var internalIPs = node.status.addresses.filter(function (addr) {
                 return addr.type === 'InternalIP';
             });
             var internalIP = internalIPs.length && internalIPs[0].address;
 
             controlPlaneNodes.push({
-                '{#NAME}': nodes[idx].metadata.name,
+                '{#NAME}': node.metadata.name,
                 '{#IP}': internalIP,
                 '{#KUBE.API.SERVER.URL}': Kube.params.api_server_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_server_port + '/metrics',
                 '{#KUBE.CONTROLLER.SERVER.URL}': Kube.params.controller_scheme + '://' + ((/(\d+.){3}\d+/.test(internalIP)) ? internalIP : '['+internalIP+']') + ':' + Kube.params.controller_port + '/metrics',
@@ -91,7 +91,7 @@ try {
                 '{#CLUSTER_HOSTNAME}': api_hostname
             });
         }
-    }
+    });
 
     return JSON.stringify(controlPlaneNodes);
 }
