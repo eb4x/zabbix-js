@@ -2,7 +2,9 @@ var Kube = {
     params: {},
 
     setParams: function (params) {
-        ['api_endpoint', 'token'].forEach(function (field) {
+        ['api_endpoint', 'token', 'api_server_scheme', 'api_server_port',
+         'controller_scheme', 'controller_port',
+         'scheduler_scheme', 'scheduler_port'].forEach(function (field) {
             if (typeof params !== 'object' || typeof params[field] === 'undefined'
                 || params[field] === '') {
                 throw 'Required param is not set: "' + field + '".';
