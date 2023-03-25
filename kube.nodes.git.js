@@ -80,25 +80,31 @@ var Kube = {
       },
 
       getEndpointIPs: function () {
-          var result = Kube.request('/api/v1/endpoints'),
-              epIPs = {};
-
+          var result = Kube.request('/api/v1/endpoints');
           if (typeof result.response !== 'object'
               || typeof result.response.items === 'undefined'
               || result.status != 200) {
               throw 'Cannot get endpoints from Kubernetes API. Check debug log for more information.';
           };
 
+          const epIPs = {};
           result.response.items.forEach(function (ep) {
-              if (ep.metadata.name === Kube.params.endpoint_name && Array.isArray(ep.subsets)) {
-                  ep.subsets.forEach(function (subset) {
-                      if (Array.isArray(subset.addresses)) {
-                          subset.addresses.forEach(function (addr) {
-                              epIPs[addr.ip] = '';
-                          });
-                      }
-                  });
+              if (ep.metadata.name !== Kube.params.endpoint_name) {
+                  return;
               }
+              if (!Array.isArray(ep.subsets)) {
+                  return;
+              }
+
+              ep.subsets.forEach(function (subset) {
+                  if (!Array.isArray(subset.addresses)) {
+                      return;
+                  }
+
+                  subset.addresses.forEach(function (addr) {
+                      epIPs[addr.ip] = '';
+                  });
+              });
           });
 
           return epIPs;

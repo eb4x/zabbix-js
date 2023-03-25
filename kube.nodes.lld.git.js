@@ -63,19 +63,19 @@ try {
 
             var internalIP = internalIPs.length && internalIPs[0].address;
 
-            if (internalIP in input.endpointIPs) {
-                output.push({
-                    '{#NAME}': node.metadata.name,
-                    '{#IP}': internalIP,
-                    '{#ROLES}': node.status.roles,
-                    '{#ARCH}': node.metadata.labels['kubernetes.io/arch'] || '',
-                    '{#OS}': node.metadata.labels['kubernetes.io/os'] || '',
-                    '{#CLUSTER_HOSTNAME}': api_hostname
-                });
-            }
-            else {
+            if (!(internalIP in input.endpointIPs)) {
                 Zabbix.log(4, '[ Kubernetes discovery ] Node "' + node.metadata.name + '" is not included in the list of endpoint IPs');
+                return;
             }
+
+            output.push({
+                '{#NAME}': node.metadata.name,
+                '{#IP}': internalIP,
+                '{#ROLES}': node.status.roles,
+                '{#ARCH}': node.metadata.labels['kubernetes.io/arch'] || '',
+                '{#OS}': node.metadata.labels['kubernetes.io/os'] || '',
+                '{#CLUSTER_HOSTNAME}': api_hostname
+            });
         }
     });
 
