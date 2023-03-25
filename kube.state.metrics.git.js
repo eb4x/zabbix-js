@@ -13,25 +13,23 @@ var Kube = {
         Kube.params = params;
     },
 
-    apiRequest: function (query) {
-        var response,
-            request = new HttpRequest(),
-            url = Kube.params.api_url + query;
-
+    request: function (query) {
+        const request = new HttpRequest();
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
+        const url = Kube.params.api_url + query;
         Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 
-        response = request.get(url);
-
-        Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus() + ': ' + response);
+        var response = request.get(url);
+        Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus());
+        Zabbix.log(5, response);
 
         if (request.getStatus() < 200 || request.getStatus() >= 300) {
             throw 'Request failed with status code ' + request.getStatus() + ': ' + response;
         }
 
-        if (response !== null) {
+        if (response) {
             try {
                 response = JSON.parse(response);
             }
@@ -47,7 +45,7 @@ var Kube = {
     },
 
     getMetricsEndpoint: function () {
-        var result = Kube.apiRequest('/api/v1/endpoints'),
+        var result = Kube.request('/api/v1/endpoints'),
             endpoint = undefined;
 
         if (typeof result.response !== 'object'
@@ -101,18 +99,16 @@ var Kube = {
             throw 'Cannot get kube-state-metrics endpoints from Kubernetes API. Check debug log for more information.';
         }
 
-        var response,
-            request = new HttpRequest(),
-            url = Kube.metrics_endpoint.scheme + '://' + Kube.metrics_endpoint.address + ':' + Kube.metrics_endpoint.port + '/metrics';
-
+        const request = new HttpRequest();
         request.addHeader('Content-Type: application/json');
         request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
+        const url = Kube.metrics_endpoint.scheme + '://' + Kube.metrics_endpoint.address + ':' + Kube.metrics_endpoint.port + '/metrics';
         Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 
-        response = request.get(url);
-
-        Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus() + ': ' + response);
+        var response = request.get(url);
+        Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus());
+        Zabbix.log(5, response);
 
         if (request.getStatus() < 200 || request.getStatus() >= 300) {
             throw 'Request failed with status code ' + request.getStatus() + ': ' + response;
@@ -123,7 +119,6 @@ var Kube = {
         }
 
         return response;
-
     }
 };
 

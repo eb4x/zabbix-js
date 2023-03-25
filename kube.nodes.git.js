@@ -14,24 +14,22 @@ var Kube = {
       },
 
       request: function (query) {
-          var response,
-              request = new HttpRequest(),
-              url = Kube.params.api_url + query;
-
+          const request = new HttpRequest();
           request.addHeader('Content-Type: application/json');
           request.addHeader('Authorization: Bearer ' + Kube.params.api_token);
 
+          const url = Kube.params.api_url + query;
           Zabbix.log(4, '[ Kubernetes ] Sending request: ' + url);
 
-          response = request.get(url);
-
-          Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus() + ': ' + response);
+          var response = request.get(url);
+          Zabbix.log(4, '[ Kubernetes ] Received response with status code ' + request.getStatus());
+          Zabbix.log(5, response);
 
           if (request.getStatus() < 200 || request.getStatus() >= 300) {
               throw 'Request failed with status code ' + request.getStatus() + ': ' + response;
           }
 
-          if (response !== null) {
+          if (response) {
               try {
                   response = JSON.parse(response);
               }
@@ -53,7 +51,7 @@ var Kube = {
               || typeof result.response.items === 'undefined'
               || result.status != 200) {
               throw 'Cannot get nodes from Kubernetes API. Check debug log for more information.';
-          };
+          }
 
           return result.response;
       },
