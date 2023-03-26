@@ -161,8 +161,7 @@ var Kube = {
           epIPs = Kube.getEndpointIPs();
 
       for (idx in nodes) {
-          var internalIP,
-              nodePodsCount = 0,
+          var nodePodsCount = 0,
               nodePods = [],
               roles = [];
 
