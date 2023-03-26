@@ -2,12 +2,15 @@ var Kube = {
     params: {},
 
     setParams: function (params) {
+        if (typeof (params) !== 'object') {
+            throw 'No params object.';
+        }
+
         ['api_token', 'api_url',
          'controller_scheme', 'controller_port',
          'scheduler_scheme', 'scheduler_port'].forEach(function (field) {
-            if (typeof params !== 'object' || typeof params[field] === 'undefined'
-                || params[field] === '') {
-                throw 'Required param is not set: "' + field + '".';
+            if (!params[field]) {
+                throw 'Required param "' + field + '" is not set.';
             }
         });
 

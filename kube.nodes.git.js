@@ -3,10 +3,13 @@ var Kube = {
       pods_limit: 1000,
 
       setParams: function (params) {
+          if (typeof (params) !== 'object') {
+              throw 'No params object.';
+          }
+
           ['api_token', 'api_url', 'endpoint_name'].forEach(function (field) {
-              if (typeof params !== 'object' || typeof params[field] === 'undefined'
-                  || params[field] === '') {
-                  throw 'Required param is not set: "' + field + '".';
+              if (!params[field]) {
+                  throw 'Required param "' + field + '" is not set.';
               }
           });
 
