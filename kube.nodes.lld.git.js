@@ -68,14 +68,14 @@ try {
     var input = JSON.parse(value);
     if (typeof input !== 'object' || typeof input.nodes === 'undefined') {
         Zabbix.log(4, '[ Kubernetes ] Received incorrect JSON: ' + value);
-        throw 'Incorrect JSON. Check debug log for more information.';
+        throw new Error('Incorrect JSON. Check debug log for more information.');
     }
 
     const api_url = 'https://api.okd.slips.pl:6443';
     var match = api_url.match(/(?:(https?):\/\/)([^:/]+)(?::(\d+))/);
     if (!match) {
         Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + api_url + '. Expected format: <scheme>://<host>:<port>');
-        throw 'Cannot get hostname from Kubernetes API url. Check debug log for more information.';
+        throw new Error('Cannot get hostname from Kubernetes API url. Check debug log for more information.');
     };
     const api_hostname = match[2];
 
@@ -111,9 +111,7 @@ try {
     });
 
     return JSON.stringify(output);
-}
-catch (error) {
-    error += (String(error).endsWith('.')) ? '' : '.';
-    Zabbix.log(3, '[ Kubernetes discovery ] ERROR: ' + error);
-    throw 'Discovery error: ' + error;
+} catch (error) {
+    Zabbix.log(2, '[ Kubernetes discovery ] ERROR: ' + error);
+    throw error;
 }

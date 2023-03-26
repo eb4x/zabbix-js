@@ -3,14 +3,14 @@ var Kube = {
 
     setParams: function (params) {
         if (typeof (params) !== 'object') {
-            throw 'No params object.';
+            throw new Error('No params object.');
         }
 
         ['api_token', 'api_url',
          'controller_scheme', 'controller_port',
          'scheduler_scheme', 'scheduler_port'].forEach(function (field) {
             if (!params[field]) {
-                throw 'Required param "' + field + '" is not set.';
+                throw new Error('Required param "' + field + '" is not set.');
             }
         });
 
@@ -25,7 +25,7 @@ var Kube = {
         const match = Kube.params.api_url.match(/(?:(https?):\/\/)([^:/]+)(?::(\d+))/);
         if (!match) {
             Zabbix.log(4, '[ Kubernetes ] Received incorrect Kubernetes API url: ' + Kube.params.api_url + '. Expected format: <scheme>://<host>:<port>');
-            throw 'Cannot get host from Kubernetes API url. Check debug log for more information.';
+            throw new Error('Cannot get host from Kubernetes API url. Check debug log for more information.');
         }
 
         Kube.params.api_scheme = match[1];
@@ -46,15 +46,15 @@ var Kube = {
         Zabbix.log(5, response);
 
         if (request.getStatus() < 200 || request.getStatus() >= 300) {
-            throw 'Request failed with status code ' + request.getStatus() + ': ' + response;
+            throw new Error('Request failed with unexpected status code. Check debug log for more information.');
         }
 
         if (response) {
             try {
                 response = JSON.parse(response);
-            }
-            catch (error) {
-                throw 'Failed to parse response received from Kubernetes API. Check debug log for more information.';
+            } catch (error) {
+                Zabbix.log(2, 'Failed to parse response received from Kubernetes API. Check debug log for more information.');
+                throw error;
             }
         }
 
@@ -70,7 +70,7 @@ var Kube = {
         if (typeof result.response !== 'object'
             || typeof result.response.items === 'undefined'
             || result.status != 200) {
-            throw 'Cannot get nodes from Kubernetes API. Check debug log for more information.';
+            throw new Error('Cannot get nodes from Kubernetes API. Check debug log for more information.');
         }
 
         return result.response.items;
@@ -113,7 +113,6 @@ try {
     return JSON.stringify(controlPlaneNodes);
 }
 catch (error) {
-    error += (String(error).endsWith('.')) ? '' : '.';
-    Zabbix.log(3, '[ Kubernetes ] ERROR: ' + error);
-    return JSON.stringify({ error: error });
+    Zabbix.log(2, '[ Kubernetes ] ERROR: ' + error);
+    throw error;
 }
