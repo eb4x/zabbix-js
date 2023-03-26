@@ -85,7 +85,8 @@ try {
     // for now we're stuck with filtering down the nodes manually
     const nodes = Kube.getNodes().filter(function (node) {
         return ('node-role.kubernetes.io/control-plane' in node.metadata.labels ||
-                'node-role.kubernetes.io/master' in node.metadata.labels);
+                'node-role.kubernetes.io/master' in node.metadata.labels ||
+                'node.kubernetes.io/microk8s-controlplane' in node.metadata.labels);
     });
 
     const isIPv4 = /(\d+\.){3}\d+/;
