@@ -76,23 +76,36 @@ try {
         filterPodLabels = parseFilters(''),
         filterPodAnnotations = parseFilters('{$KUBE.POD.FILTER.ANNOTATIONS}');
 
-    const output = [];
-    input.nodes.forEach(function (node) {
-        if (filter(node.metadata.name, node.metadata.labels, filterNodeLabels)
-            && filter(node.metadata.name, node.metadata.annotations, filterNodeAnnotations)) {
-            node.pods.forEach(function (pod) {
-                if (filter(pod.name, pod.labels, filterPodLabels)
-                    && filter(pod.name, pod.annotations, filterPodAnnotations)) {
-                    Zabbix.log(4, '[ Kubernetes discovery ] Filtered pod "' + pod.name + '"');
+    function onNodeLabels (node) {
+        return filter(node.metadata.name, node.metadata.labels, filterNodeLabels);
+    }
+    function onNodeAnnotations (node) {
+        return filter(node.metadata.name, node.metadata.annotations, filterNodeAnnotations);
+    }
+    function onPodLabels (pod) {
+        return filter(pod.name, pod.labels, filterPodLabels);
+    }
+    function onPodAnnotations (pod) {
+        return filter(pod.name, pod.annotations, filterPodAnnotations);
+    }
 
-                    output.push({
-                        '{#POD}': pod.name,
-                        '{#NAMESPACE}': pod.namespace,
-                        '{#NODE}': node.metadata.name
-                    });
-                }
+    const output = [];
+    input.nodes
+        .filter(onNodeLabels)
+        .filter(onNodeAnnotations)
+        .forEach(function (node) {
+        node.pods
+            .filter(onPodLabels)
+            .filter(onPodAnnotations)
+            .forEach(function (pod) {
+            Zabbix.log(4, '[ Kubernetes discovery ] Filtered pod "' + pod.name + '"');
+
+            output.push({
+                '{#POD}': pod.name,
+                '{#NAMESPACE}': pod.namespace,
+                '{#NODE}': node.metadata.name
             });
-        }
+        });
     });
 
     return JSON.stringify(output);

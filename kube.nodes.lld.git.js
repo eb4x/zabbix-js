@@ -79,35 +79,42 @@ try {
     };
     const api_hostname = match[2];
 
-    var filterLabels = parseFilters('!kubernetes.io/hostname: \\w+-[1-2],  node-role.kubernetes.io/master: .*, dope'),
-        filterAnnotations = parseFilters('{$KUBE.NODE.FILTER.ANNOTATIONS}');
+    var filterNodeLabels = parseFilters('!kubernetes.io/hostname: \\w+-[1-2],  node-role.kubernetes.io/master: .*, dope'),
+        filterNodeAnnotations = parseFilters('{$KUBE.NODE.FILTER.ANNOTATIONS}');
+
+    function onNodeLabels (node) {
+        return filter(node.metadata.name, node.metadata.labels, filterNodeLabels);
+    }
+    function onNodeAnnotations (node) {
+        return filter(node.metadata.name, node.metadata.annotations, filterNodeAnnotations);
+    }
 
     const output = [];
-    input.nodes.forEach(function (node) {
-        if (filter(node.metadata.name, node.metadata.labels, filterLabels)
-            && filter(node.metadata.name, node.metadata.annotations, filterAnnotations)) {
-            Zabbix.log(4, '[ Kubernetes discovery ] Filtered node "' + node.metadata.name + '"');
+    input.nodes
+        .filter(onNodeLabels)
+        .filter(onNodeAnnotations)
+        .forEach(function (node) {
+        Zabbix.log(4, '[ Kubernetes discovery ] Filtered node "' + node.metadata.name + '"');
 
-            var internalIPs = node.status.addresses.filter(function (addr) {
-                return addr.type === 'InternalIP';
-            });
+        var internalIPs = node.status.addresses.filter(function (addr) {
+            return addr.type === 'InternalIP';
+        });
 
-            var internalIP = internalIPs.length && internalIPs[0].address;
+        var internalIP = internalIPs.length && internalIPs[0].address;
 
-            if (!(internalIP in input.endpointIPs)) {
-                Zabbix.log(4, '[ Kubernetes discovery ] Node "' + node.metadata.name + '" is not included in the list of endpoint IPs');
-                return;
-            }
-
-            output.push({
-                '{#NAME}': node.metadata.name,
-                '{#IP}': internalIP,
-                '{#ROLES}': node.status.roles,
-                '{#ARCH}': node.metadata.labels['kubernetes.io/arch'] || '',
-                '{#OS}': node.metadata.labels['kubernetes.io/os'] || '',
-                '{#CLUSTER_HOSTNAME}': api_hostname
-            });
+        if (!(internalIP in input.endpointIPs)) {
+            Zabbix.log(4, '[ Kubernetes discovery ] Node "' + node.metadata.name + '" is not included in the list of endpoint IPs');
+            return;
         }
+
+        output.push({
+            '{#NAME}': node.metadata.name,
+            '{#IP}': internalIP,
+            '{#ROLES}': node.status.roles,
+            '{#ARCH}': node.metadata.labels['kubernetes.io/arch'] || '',
+            '{#OS}': node.metadata.labels['kubernetes.io/os'] || '',
+            '{#CLUSTER_HOSTNAME}': api_hostname
+        });
     });
 
     return JSON.stringify(output);
