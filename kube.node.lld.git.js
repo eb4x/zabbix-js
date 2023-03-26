@@ -80,21 +80,20 @@ try {
 
     const isIPv4 = /(\d+\.){3}\d+/;
 
-    const kubeNodes = [];
-    nodes.forEach(function (node) {
+    const kubeNodes = nodes.map(function (node) {
         var internalIPs = node.status.addresses.filter(function (addr) {
             return addr.type === 'InternalIP';
         });
 
         var internalIP = internalIPs.length && internalIPs[0].address;
 
-        kubeNodes.push({
+        return {
             '{#NAME}': node.metadata.name,
             '{#IP}': internalIP,
             '{#KUBE.KUBELET.URL}': Kube.params.kubelet_scheme + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.kubelet_port,
             '{#COMPONENT}': 'Kubelet',
             '{#CLUSTER_HOSTNAME}': Kube.params.api_hostname
-        });
+        };
     });
 
     return JSON.stringify(kubeNodes);

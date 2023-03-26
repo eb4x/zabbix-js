@@ -91,14 +91,13 @@ try {
 
     const isIPv4 = /(\d+\.){3}\d+/;
 
-    const controlPlaneNodes = [];
-    nodes.forEach(function (node) {
+    const controlPlaneNodes = nodes.map(function (node) {
         var internalIPs = node.status.addresses.filter(function (addr) {
             return addr.type === 'InternalIP';
         });
         var internalIP = internalIPs.length && internalIPs[0].address;
 
-        controlPlaneNodes.push({
+        return {
             '{#NAME}': node.metadata.name,
             '{#IP}': internalIP,
             '{#KUBE.API.SERVER.URL}':        Kube.params.api_scheme        + '://' + (isIPv4.test(internalIP) ? internalIP : '['+internalIP+']') + ':' + Kube.params.api_port        + '/metrics',
@@ -108,7 +107,7 @@ try {
             '{#COMPONENT.CONTROLLER}' : 'Controller manager',
             '{#COMPONENT.SCHEDULER}' : 'Scheduler',
             '{#CLUSTER_HOSTNAME}': Kube.params.api_hostname
-        });
+        };
     });
 
     return JSON.stringify(controlPlaneNodes);
